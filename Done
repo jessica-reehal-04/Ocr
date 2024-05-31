@@ -1,0 +1,87 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.security.cert.X509Certificate;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
+public class BitbucketGetRequest {
+
+    public static void main(String[] args) {
+        try {
+            // Disable SSL verification for testing
+            disableSSLVerification();
+
+            // URL to make the GET request to
+            String url = "https://api.bitbucket.org/2.0/repositories/{username}/{repo_slug}";
+            
+            // Bitbucket access token
+            String accessToken = "your_access_token";
+            
+            // Create a URL object
+            URL obj = new URL(url);
+            
+            // Open a connection to the URL
+            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+            
+            // Set the request method to GET
+            con.setRequestMethod("GET");
+            
+            // Bearer Token Authentication
+            String authHeader = "Bearer " + accessToken;
+            con.setRequestProperty("Authorization", authHeader);
+            
+            // Optional: Set request headers if needed
+            con.setRequestProperty("User-Agent", "Mozilla/5.0");
+
+            // Get the response code
+            int responseCode = con.getResponseCode();
+            System.out.println("GET Response Code :: " + responseCode);
+
+            // Read the response
+            if (responseCode == HttpURLConnection.HTTP_OK) { // success
+                BufferedReader in = new BufferedReader(new InputStreamReader(
+                        con.getInputStream()));
+                String inputLine;
+                StringBuffer response = new StringBuffer();
+
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+                in.close();
+
+                // Print the result
+                System.out.println("Response: " + response.toString());
+            } else {
+                System.out.println("GET request failed");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void disableSSLVerification() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[] {
+                new X509TrustManager() {
+                    public X509Certificate[] getAcceptedIssuers() { return null; }
+                    public void checkClientTrusted(X509Certificate[] certs, String authType) { }
+                    public void checkServerTrusted(X509Certificate[] certs, String authType) { }
+                }
+            };
+
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+
+            HostnameVerifier allHostsValid = (hostname, session) -> true;
+            HttpsURLConnection.setDefaultHostnameVerifier(allHostsValid);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
