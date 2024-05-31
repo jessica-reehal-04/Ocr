@@ -1,0 +1,61 @@
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Base64;
+
+public class BitbucketApiExample {
+
+    public static void main(String[] args) {
+        String apiUrl = "https://api.bitbucket.org/2.0/repositories/your-username/your-repo";
+        String username = "your-username";
+        String password = "your-password";
+
+        try {
+            JsonObject jsonResponse = callBitbucketApi(apiUrl, username, password);
+            System.out.println("Response from Bitbucket API: " + jsonResponse);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static JsonObject callBitbucketApi(String apiUrl, String username, String password) throws Exception {
+        // Create URL object
+        URL url = new URL(apiUrl);
+        
+        // Open connection
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        
+        // Set the request method to GET
+        connection.setRequestMethod("GET");
+        
+        // Set the Authorization header
+        String auth = username + ":" + password;
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+        connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+        // Check the response code
+        int responseCode = connection.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_OK) { // success
+            // Read the response
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            StringBuilder response = new StringBuilder();
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+            
+            // Parse JSON response
+            try (JsonReader jsonReader = Json.createReader(new StringReader(response.toString()))) {
+                JsonObject jsonResponse = jsonReader.readObject();
+                return jsonResponse;
+            }
+        } else {
+            throw new Exception("Failed to call Bitbucket API: " + responseCode);
+        }
+    }
+}
